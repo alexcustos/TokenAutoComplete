@@ -508,8 +508,9 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
 
         Editable editable = getText();
-        int end = getCorrectedTokenEnd();
-        int start = getCorrectedTokenBeginning(end);
+        int cursorPosition = getSelectionEnd();
+        int end = getCorrectedTokenEnd(editable, cursorPosition);
+        int start = getCorrectedTokenBeginning(editable, end);
 
         editable.delete(start, end);
     }
@@ -526,14 +527,21 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
     }
 
-    private int getCorrectedTokenEnd() {
-        Editable editable = getText();
-        int cursorPosition = getSelectionEnd();
-        return tokenizer.findTokenEnd(editable, cursorPosition);
+    private int getCorrectedTokenEnd(Editable editable, int cursorPosition) {
+        try {
+            return tokenizer.findTokenEnd(editable, cursorPosition);
+        } catch (IndexOutOfBoundsException e) {
+            return tokenizer.findTokenEnd(editable, 0);
+        }
     }
 
-    private int getCorrectedTokenBeginning(int end) {
-        int start = tokenizer.findTokenStart(getText(), end);
+    private int getCorrectedTokenBeginning(Editable editable, int end) {
+        int start;
+        try {
+            start = tokenizer.findTokenStart(editable, end);
+        } catch (IndexOutOfBoundsException e) {
+            start = tokenizer.findTokenStart(editable, editable.length());
+        }
         if (start < prefix.length()) {
             start = prefix.length();
         }
@@ -544,8 +552,9 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         if (hintVisible) return ""; //Can't have any text if the hint is visible
 
         Editable editable = getText();
-        int end = getCorrectedTokenEnd();
-        int start = getCorrectedTokenBeginning(end);
+        int cursorPosition = getSelectionEnd();
+        int end = getCorrectedTokenEnd(editable, cursorPosition);
+        int start = getCorrectedTokenBeginning(editable, end);
 
         //Some keyboards add extra spaces when doing corrections, so
         return TextUtils.substring(editable, start, end).trim();
@@ -582,14 +591,15 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             return false;
         }
 
+        Editable editable = getText();
         int cursorPosition = getSelectionEnd();
 
         if (cursorPosition < 0) {
             return false;
         }
 
-        int end = getCorrectedTokenEnd();
-        int start = getCorrectedTokenBeginning(end);
+        int end = getCorrectedTokenEnd(editable, cursorPosition);
+        int start = getCorrectedTokenBeginning(editable, end);
 
         //Don't allow 0 length entries to filter
         return end - start >= Math.max(getThreshold(), 1);
@@ -944,8 +954,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         if (!hintVisible) {
             //If you force the drop down to show when the hint is visible, you can run a completion
             //on the hint. If the hint includes commas, this truncates and inserts the hint in the field
-            end = getCorrectedTokenEnd();
-            start = getCorrectedTokenBeginning(end);
+            end = getCorrectedTokenEnd(editable, cursorPosition);
+            start = getCorrectedTokenBeginning(editable, end);
         }
 
         String original = TextUtils.substring(editable, start, end);
