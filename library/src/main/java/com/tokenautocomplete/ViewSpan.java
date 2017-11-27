@@ -22,8 +22,6 @@ public class ViewSpan extends ReplacementSpan {
 
     private static final String TAG = ViewSpan.class.getSimpleName();
 
-    private static final char SENTINEL = ',';
-
     protected View view;
     private int maxWidth;
     private boolean prepared;
@@ -69,24 +67,19 @@ public class ViewSpan extends ReplacementSpan {
     public int getSize(
             @NonNull Paint paint, CharSequence text,
             @IntRange(from = 0) int start, @IntRange(from = 0) int end,
-            @Nullable Paint.FontMetricsInt fm) {
+            @Nullable Paint.FontMetricsInt fontMetricsInt) {
         prepView();
-        // NOTE: only the first tag (measure) has ~2dp "padding"
-        // NOTE: a string with the single tag can be trimmed up to span height when the layout is inflated
-        String str = text.toString();
-        str = str.substring(0, str.lastIndexOf(SENTINEL) + 1);
-        if (start == 0 && str.length() > end) {
-            // WORKAROUND: first measure is ignored if there are other ones
-            return view.getRight();
-        }
-        if (fm != null) {
-            final int height = view.getMeasuredHeight();
-            final int top_need = height - (fm.bottom - fm.top);
-            if (top_need != 0) {
-                int top_patch = top_need / 2;
-                fm.ascent = (fm.top -= top_patch);
-                fm.descent = (fm.bottom += top_need - top_patch);
+        if (fontMetricsInt != null) {
+            //We need to make sure the layout allots enough space for the view
+            int height = view.getMeasuredHeight();
+
+            int adjustedBaseline = view.getBaseline();
+            //-1 means the view doesn't support baseline alignment, so align bottom to font baseline
+            if (adjustedBaseline == -1) {
+                adjustedBaseline = height;
             }
+            fontMetricsInt.ascent = (fontMetricsInt.top = -adjustedBaseline);
+            fontMetricsInt.descent = (fontMetricsInt.bottom = height - adjustedBaseline);
         }
         return view.getRight();
     }
