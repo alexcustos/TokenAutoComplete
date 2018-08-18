@@ -14,7 +14,7 @@ import java.util.ArrayList;
  * @author mgod
  */
 public class CharacterTokenizer implements MultiAutoCompleteTextView.Tokenizer {
-    ArrayList<Character> splitChar;
+    private ArrayList<Character> splitChar;
 
     CharacterTokenizer(char[] splitChar){
         super();
@@ -28,8 +28,10 @@ public class CharacterTokenizer implements MultiAutoCompleteTextView.Tokenizer {
         while (i > 0 && !splitChar.contains(text.charAt(i - 1))) {
             i--;
         }
-        if (i > 0 && text.charAt(i) == ' ') {
-            i++;
+        try {
+            if (i > 0 && text.charAt(i) == ' ') i++;
+        } catch (IndexOutOfBoundsException e) {
+            // NOTE: this should not happen, but happened once, just skip it
         }
         return i;
     }
